@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ficha de pacientes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+:root{--vidrio:.3;--velo:0;--brillo:1.5;--selva:#0f2a26;--papel:#f6f8f4;--tinta:#16302c;--suave:#5d726d;--linea:#cfd9d3;--verde:#1f7a5c;--aviso:#a8321f}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--selva);color:var(--tinta);font-family:"Atkinson Hyperlegible",system-ui,sans-serif;line-height:1.45}
+#fondo{position:fixed;inset:0;z-index:-1;overflow:hidden;background:radial-gradient(circle at 20% 30%,#1c6b58 0,transparent 45%),radial-gradient(circle at 80% 70%,#14507a 0,transparent 45%),#0f2a26;background-size:140% 140%;animation:flota 16s ease-in-out infinite alternate}
+@keyframes flota{from{background-position:0 0}to{background-position:100% 100%}}
+@media (prefers-reduced-motion:reduce){#fondo{animation:none}}
+#fondo video{width:100%;height:100%;object-fit:cover;filter:brightness(var(--brillo))}
+#fondo::after{content:"";position:absolute;inset:0;background:rgba(10,32,28,var(--velo))}
+main{max-width:880px;margin:0 auto;padding:28px 14px 60px}
+h1{margin:0 0 4px;color:#fff;font-size:1.9rem}
+.sub{margin:0 0 20px;color:#cfe3dc}
+.ficha{background:rgba(9,33,29,var(--vidrio));-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:22px;color:#f1f7f4}
+fieldset{margin:0 0 22px;padding:12px 0 0;border:0;border-top:2px solid rgba(255,255,255,.55)}
+legend{padding-right:10px;font-size:1.1rem;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px 16px}
+label{display:block;color:#d8e8e2;font-size:.9rem}
+input,select{display:block;width:100%;margin-top:3px;padding:9px 10px;border:1px solid var(--linea);border-radius:6px;background:#fff;color:var(--tinta);font:inherit}
+input:focus,select:focus,button:focus-visible{outline:3px solid #7be0b5;outline-offset:1px}
+input[readonly]{background:#eaf0ec}
+.vitales input{color:#14664b;font-size:1.8rem;font-weight:700}
+.acciones{display:flex;flex-wrap:wrap;gap:10px}
+button{padding:11px 20px;border:2px solid var(--verde);border-radius:6px;font:inherit;font-weight:700;cursor:pointer}
+#btnDigital{background:var(--verde);color:#fff}
+#btnSD{background:transparent;border-color:rgba(255,255,255,.4);color:#d8e8e2;cursor:not-allowed}
+#msg{min-height:1.5em;margin:12px 0 0;font-weight:700}
+.ok{color:#7be0b5}.err{color:#ffb4a6}
+#mapa iframe{display:block;width:100%;height:340px;border:0;border-radius:8px}
+.vacio{padding:18px;border:2px dashed rgba(255,255,255,.4);border-radius:8px;color:#d8e8e2}
+#foto{min-height:130px;display:flex;align-items:center;justify-content:center;text-align:center}
+label.consent{display:flex;gap:8px;align-items:center;margin-top:10px;color:#f1f7f4}
+label.consent input{width:auto;margin:0}
+.estado{display:inline-flex;gap:8px;align-items:center;margin:0 0 16px;padding:5px 14px;border:1px solid rgba(255,255,255,.35);border-radius:99px;background:rgba(9,33,29,.55);color:#f1f7f4;font-size:.85rem}
+.estado i{width:10px;height:10px;border-radius:50%;background:#ffb4a6}
+.estado.on i{background:#7be0b5}
+#btnLectura{background:transparent;border-color:rgba(255,255,255,.6);color:#f1f7f4}
+</style>
+</head>
+<body>
+<div id="fondo"></div>
+<main>
+  <h1>Ficha de identificación del paciente</h1>
+  <p class="sub">Registro de datos y lecturas vitales</p>
+  <div id="estadoEsp" class="estado"><i></i><span id="estadoTxt">ESP32: sin conexión</span></div>
+
+  <div class="ficha">
+    <fieldset>
+      <legend>Datos del paciente</legend>
+      <div class="grid">
+        <label>Carnet de identidad<input id="carnet" autocomplete="off"></label>
+        <label>Nombres<input id="nombres" autocomplete="off"></label>
+        <label>Apellidos<input id="apellidos" autocomplete="off"></label>
+        <label>Fecha de nacimiento<input id="nacimiento" type="date"></label>
+        <label>Edad<input id="edad" readonly></label>
+        <label>Sexo
+          <select id="sexo"><option value="">Elegir</option><option>Femenino</option><option>Masculino</option></select></label>
+        <label>Estado civil
+          <select id="estadoCivil"><option value="">Elegir</option><option>Soltero/a</option><option>Casado/a</option><option>Unión libre</option><option>Divorciado/a</option><option>Viudo/a</option></select></label>
+        <label>Ocupación<input id="ocupacion"></label>
+        <label>Lugar de origen<input id="origen"></label>
+        <label>Residencia<input id="residencia"></label>
+        <label>Grado de instrucción
+          <select id="instruccion"><option value="">Elegir</option><option>Sin instrucción</option><option>Primaria</option><option>Secundaria</option><option>Técnico</option><option>Universitario</option></select></label>
+      </div>
+    </fieldset>
+
+    <fieldset class="vitales">
+      <legend>Lecturas vitales</legend>
+      <div class="grid">
+        <label>Pulso cardíaco (latidos por minuto)<input id="pulso" type="number" inputmode="numeric" min="20" max="250"></label>
+        <label>Saturación de oxígeno SpO₂ (%)<input id="spo2" type="number" inputmode="numeric" min="50" max="100"></label>
+      </div>
+      <div class="acciones" style="margin-top:12px"><button id="btnLectura" type="button">Traer lectura del ESP32</button></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Foto del paciente (opcional)</legend>
+      <div id="foto" class="vacio">La foto llegará desde la cámara del ESP32.</div>
+      <label class="consent"><input type="checkbox" id="consentFoto"> El paciente acepta que se tome y guarde su foto</label>
+    </fieldset>
+
+    <div class="acciones">
+      <button id="btnDigital" type="button">Guardar Digital</button>
+      <button id="btnSD" type="button" aria-disabled="true" title="Se activará cuando conectemos el ESP32">Guardar en SD (próximamente)</button>
+    </div>
+    <p id="msg" role="status"></p>
+
+    <fieldset style="margin-top:22px">
+      <legend>Hospitales de Cobija</legend>
+      <div id="mapa"></div>
+    </fieldset>
+  </div>
+</main>
+
+<script>
+// 1) Video de fondo: el archivo fondo.mp4 debe estar en la misma carpeta que este index.html.
+const VIDEO_URL = 'fondo.mp4';
+// 1b) Dirección de tu web app de Apps Script (la que termina en /exec). Aquí se guardan los datos.
+const URL_SCRIPT = 'https://script.google.com/macros/s/AKfycbyup3LpGjrrHaxekZ5qkm0dc8wH4HHWdS1ytESU2S-GMIR5kGorLH998JIQUluGdp_Qfw/exec';
+// 2) Mapa: ya busca "hospitales en Cobija" en Google Maps. Puedes cambiarlo por el enlace de tu Google My Maps.
+const MAPA_URL = 'https://www.google.com/maps?q=hospitales+en+Cobija+Pando+Bolivia&output=embed';
+
+const $ = id => document.getElementById(id);
+
+if (VIDEO_URL) {
+  const v = document.createElement('video');
+  v.src = VIDEO_URL; v.muted = true; v.loop = true; v.playsInline = true; v.autoplay = true;
+  v.addEventListener('error', () => v.remove());
+  $('fondo').appendChild(v);
+  v.play().catch(() => {});
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) v.pause();
+}
+
+$('mapa').innerHTML = MAPA_URL
+  ? '<iframe src="' + MAPA_URL + '" loading="lazy" title="Mapa de hospitales de Cobija"></iframe>'
+  : '<div class="vacio">Aquí irá el mapa. Pega el enlace de Google My Maps en la constante MAPA_URL.</div>';
+
+$('nacimiento').addEventListener('change', () => {
+  const n = new Date($('nacimiento').value), h = new Date();
+  if (isNaN(n)) { $('edad').value = ''; return; }
+  let e = h.getFullYear() - n.getFullYear();
+  if (h < new Date(h.getFullYear(), n.getMonth(), n.getDate())) e--;
+  $('edad').value = e + ' años';
+});
+
+let ultimaLect = null;
+function refrescarEstado() {
+  fetch(URL_SCRIPT + '?accion=estado')
+    .then(r => r.json())
+    .then(r => {
+      const vivo = r && r.segundos !== null && r.segundos < 30;
+      $('estadoEsp').className = 'estado' + (vivo ? ' on' : '');
+      $('estadoTxt').textContent = vivo ? 'ESP32: conectado' : 'ESP32: sin conexión';
+      ultimaLect = r ? r.lectura : null;
+    })
+    .catch(() => {});
+}
+$('btnLectura').addEventListener('click', () => {
+  if (!ultimaLect) { mensaje('Aún no hay lectura del ESP32.', 'err'); return; }
+  $('pulso').value = ultimaLect.pulso; $('spo2').value = ultimaLect.spo2;
+  mensaje('Lectura del ESP32 cargada. Revísala y guarda.', 'ok');
+});
+
+function mensaje(texto, clase) { $('msg').textContent = texto; $('msg').className = clase || ''; }
+
+refrescarEstado();
+setInterval(refrescarEstado, 8000);
+
+$('btnSD').addEventListener('click', () => mensaje('Guardar en SD se activará cuando conectemos el ESP32.', ''));
+
+$('btnDigital').addEventListener('click', () => {
+  const campos = ['carnet','nombres','apellidos','nacimiento','sexo','estadoCivil','ocupacion','origen','residencia','instruccion','pulso','spo2'];
+  const datos = {};
+  campos.forEach(c => datos[c] = $(c).value.trim());
+  $('btnDigital').disabled = true;
+  mensaje('Guardando…', '');
+  fetch(URL_SCRIPT, { method: 'POST', body: JSON.stringify({ accion: 'registro', datos: datos }) })
+    .then(r => r.json())
+    .then(r => {
+      $('btnDigital').disabled = false;
+      if (!r.ok) { mensaje(r.error || 'No se pudo guardar.', 'err'); return; }
+      mensaje('Guardado. Paciente ' + r.id + (r.nuevo ? ' (nuevo).' : ' (lectura agregada).'), 'ok');
+      ['pulso','spo2'].forEach(c => $(c).value = '');
+    })
+    .catch(() => {
+      $('btnDigital').disabled = false;
+      mensaje('No se pudo conectar. Revisa tu internet e inténtalo de nuevo.', 'err');
+    });
+});
+</script>
+</body>
+</html>
